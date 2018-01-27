@@ -53,10 +53,7 @@ such as Terraform can access the API.
 
 Can also list, delete, import and check keys. Generated keys are kept track
 of in a data file in ~/.oci/oci-api-keygen.json which can be overridden via
-the comamdn line.`,
-	// Uncomment the following line if your bare application
-	// has an action associated with it:
-	//	Run: func(cmd *cobra.Command, args []string) { },
+the command line.`,
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
