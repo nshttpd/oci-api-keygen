@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	log "github.com/sirupsen/logrus"
+	"fmt"
 )
 
 type Config struct {
@@ -57,4 +58,17 @@ func (c *Config) SaveConfig() {
 			sl.Debug("saved config file")
 		}
 	}
+}
+
+func (c *Config) GetTenancy(tenancy string) (ApiKey, error) {
+
+	for _, a := range c.ApiKeys {
+		if a.Tenancy == tenancy {
+			return a, nil
+		}
+	}
+
+	err := fmt.Errorf("invalid tenancy specified")
+
+	return ApiKey{}, err
 }

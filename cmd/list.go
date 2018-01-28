@@ -39,6 +39,7 @@ import (
 var listCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List known keys or info about a specific key",
+	Args:  cobra.MaximumNArgs(1),
 	Long: `List tenancies that have had keys created for them or with a
 specific tenancy requested show full details. Example :
 
@@ -49,9 +50,18 @@ specific tenancy requested show full details. Example :
 `,
 	Run: func(cmd *cobra.Command, args []string) {
 
-		if len(cfg.ApiKeys) > 0 {
-			for _, a := range cfg.ApiKeys {
-				fmt.Printf("tenancy : %s", a.Tenancy)
+		if len(args) == 0 {
+			if len(cfg.ApiKeys) > 0 {
+				for _, a := range cfg.ApiKeys {
+					fmt.Println(a.Tenancy)
+				}
+			}
+		} else {
+			a, err := cfg.GetTenancy(args[0])
+			if err != nil {
+				fmt.Println("no such tenancy")
+			} else {
+				fmt.Printf("tenancy: %s\tfingerprint: %s\n", a.Tenancy, a.Fingerprint)
 			}
 		}
 
