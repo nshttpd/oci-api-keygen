@@ -30,36 +30,110 @@
 package cmd
 
 import (
+	"crypto/rand"
+	"crypto/rsa"
+
+	"os"
+
+	"crypto/x509"
+	"encoding/pem"
+
+	"encoding/asn1"
+
+	"crypto/md5"
 	"fmt"
 
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
+)
+
+const (
+	bitsize = 2048
 )
 
 // createCmd represents the create command
 var createCmd = &cobra.Command{
 	Use:   "create",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
+	Args:  cobra.ExactArgs(1),
+	Short: "Create API key for a tenancy",
+	Long: `Create an API public and private key for accessing the OCI API for
+a specific tenancy.
 
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	oci-api-keygen create [tenancy]
+
+the generated keys will be stored in the same directory as the config file
+named as the tenancy supplied.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("create called")
+		t := args[0]
+		reader := rand.Reader
+		if key, err := rsa.GenerateKey(reader, bitsize); err != nil {
+			log.WithFields(log.Fields{"tenancy": t, "error": err}).Error("error generating key")
+		} else {
+			f := savePrivate(t+".pem", key)
+			savePublic(t+".pub.pem", key.PublicKey)
+			a := &ApiKey{Tenancy: t, Fingerprint: f}
+			cfg.ApiKeys = append(cfg.ApiKeys, *a)
+		}
+
 	},
+}
+
+func savePrivate(filename string, key *rsa.PrivateKey) string {
+	f, err := os.Create(cfg.KeyPath + "/" + filename)
+	if err != nil {
+		log.WithFields(log.Fields{"filename": filename, "error": err}).Fatal("error creating private file")
+	}
+	defer f.Close()
+	pk := &pem.Block{
+		Type:  "PRIVATE KEY",
+		Bytes: x509.MarshalPKCS1PrivateKey(key),
+	}
+
+	err = pem.Encode(f, pk)
+	if err != nil {
+		log.WithFields(log.Fields{"filename": filename, "error": err}).Fatal("error writing private file")
+	}
+
+	md5sum := md5.Sum(pk.Bytes)
+	return rfc4716hex(md5sum[:])
+
+}
+
+func rfc4716hex(data []byte) string {
+	var fingerprint string
+	for i := 0; i < len(data); i++ {
+		fingerprint = fmt.Sprintf("%s%0.2x", fingerprint, data[i])
+		if i != len(data)-1 {
+			fingerprint = fingerprint + ":"
+		}
+	}
+	return fingerprint
+}
+
+func savePublic(filename string, key rsa.PublicKey) {
+
+	asn1Bytes, err := asn1.Marshal(key)
+	if err != nil {
+		log.WithFields(log.Fields{"filename": filename, "error": err}).Fatal("error marshalling public key")
+	}
+
+	var pemkey = &pem.Block{
+		Type:  "PUBLIC KEY",
+		Bytes: asn1Bytes,
+	}
+
+	f, err := os.Create(cfg.KeyPath + "/" + filename)
+	if err != nil {
+		log.WithFields(log.Fields{"filename": filename, "error": err}).Fatal("error creating public file")
+	}
+	defer f.Close()
+
+	err = pem.Encode(f, pemkey)
+	if err != nil {
+		log.WithFields(log.Fields{"filename": filename, "error": err}).Fatal("error writing public file")
+	}
 }
 
 func init() {
 	rootCmd.AddCommand(createCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// createCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// createCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }

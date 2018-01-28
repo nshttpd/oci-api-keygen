@@ -33,12 +33,21 @@ import (
 	"fmt"
 	"os"
 
+	log "github.com/sirupsen/logrus"
+
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
-var cfgFile string
+const (
+	DEFAULT_CONFIG_FILE = ".oci/oci-api-keygen.json"
+)
+
+var (
+	cfgFile  string
+	logLevel string
+	cfg      *Config
+)
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -54,6 +63,19 @@ such as Terraform can access the API.
 Can also list, delete, import and check keys. Generated keys are kept track
 of in a data file in ~/.oci/oci-api-keygen.json which can be overridden via
 the command line.`,
+	PersistentPreRun: func(cmd *cobra.Command, args []string) {
+		l, err := log.ParseLevel(logLevel)
+		if err != nil {
+			fmt.Printf("error setting log level : %v", err)
+			os.Exit(1)
+		}
+		log.SetLevel(l)
+
+		cfg = loadConfig()
+	},
+	PersistentPostRun: func(cmd *cobra.Command, args []string) {
+		cfg.SaveConfig()
+	},
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -66,40 +88,14 @@ func Execute() {
 }
 
 func init() {
-	cobra.OnInitialize(initConfig)
-
-	// Here you will define your flags and configuration settings.
-	// Cobra supports persistent flags, which, if defined here,
-	// will be global for your application.
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.oci-api-keygen.yaml)")
-
-	// Cobra also supports local flags, which will only run
-	// when this action is called directly.
-	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-}
-
-// initConfig reads in config file and ENV variables if set.
-func initConfig() {
-	if cfgFile != "" {
-		// Use config file from the flag.
-		viper.SetConfigFile(cfgFile)
-	} else {
-		// Find home directory.
-		home, err := homedir.Dir()
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
-
-		// Search config in home directory with name ".oci-api-keygen" (without extension).
-		viper.AddConfigPath(home)
-		viper.SetConfigName(".oci-api-keygen")
+	hd, err := homedir.Dir()
+	if err != nil {
+		log.Fatalf("error discerning homedir : %v", err)
 	}
 
-	viper.AutomaticEnv() // read in environment variables that match
+	cfgFile = fmt.Sprintf("%s/%s", hd, DEFAULT_CONFIG_FILE)
 
-	// If a config file is found, read it in.
-	if err := viper.ReadInConfig(); err == nil {
-		fmt.Println("Using config file:", viper.ConfigFileUsed())
-	}
+	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", cfgFile, "config file")
+	rootCmd.PersistentFlags().StringVar(&logLevel, "loglevel", "info", "log level")
+
 }
