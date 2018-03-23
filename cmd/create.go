@@ -85,7 +85,7 @@ func savePrivate(filename string, key *rsa.PrivateKey) string {
 	}
 	defer f.Close()
 	pk := &pem.Block{
-		Type:  "PRIVATE KEY",
+		Type:  "RSA PRIVATE KEY",
 		Bytes: x509.MarshalPKCS1PrivateKey(key),
 	}
 
