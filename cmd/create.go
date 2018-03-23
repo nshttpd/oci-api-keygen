@@ -38,10 +38,10 @@ import (
 	"crypto/x509"
 	"encoding/pem"
 
-	"encoding/asn1"
-
 	"crypto/md5"
 	"fmt"
+
+	"crypto"
 
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/cobra"
@@ -70,7 +70,7 @@ named as the tenancy supplied.`,
 			log.WithFields(log.Fields{"tenancy": t, "error": err}).Error("error generating key")
 		} else {
 			f := savePrivate(t+".pem", key)
-			savePublic(t+".pub.pem", key.PublicKey)
+			savePublic(t+".pub.pem", key.Public())
 			a := &ApiKey{Tenancy: t, Fingerprint: f}
 			cfg.ApiKeys = append(cfg.ApiKeys, *a)
 		}
@@ -110,9 +110,11 @@ func rfc4716hex(data []byte) string {
 	return fingerprint
 }
 
-func savePublic(filename string, key rsa.PublicKey) {
+func savePublic(filename string, key crypto.PublicKey) {
 
-	asn1Bytes, err := asn1.Marshal(key)
+	//	asn1Bytes, err := asn1.Marshal(key)
+	asn1Bytes, err := x509.MarshalPKIXPublicKey(key)
+
 	if err != nil {
 		log.WithFields(log.Fields{"filename": filename, "error": err}).Fatal("error marshalling public key")
 	}
