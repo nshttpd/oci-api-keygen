@@ -37,7 +37,8 @@ import (
 
 // deleteCmd represents the delete command
 var deleteCmd = &cobra.Command{
-	Use:   "delete",
+	Use:   "delete [tenancy]",
+	Args:  cobra.ExactArgs(1),
 	Short: "Delete a tenancy and associated files",
 	Long: `Use to delete and remove the files of a tenancy that may no
 longer be necessary.
@@ -47,7 +48,22 @@ longer be necessary.
 there are no backups made, so make sure you want to do this before
 you actually do it.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("delete called")
+		t := args[0]
+		idx := -1
+
+		for i, a := range cfg.ApiKeys {
+			if a.Tenancy == t {
+				idx = i
+			}
+		}
+
+		if idx < 0 {
+			fmt.Printf("tenancy not found : %s\n", t)
+		} else {
+			cfg.ApiKeys = append(cfg.ApiKeys[:idx], cfg.ApiKeys[idx+1:]...)
+			cfg.SaveConfig()
+			fmt.Printf("deleted tenancy : %s\n", t)
+		}
 	},
 }
 

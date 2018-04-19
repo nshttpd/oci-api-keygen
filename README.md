@@ -42,3 +42,8 @@ Show fingerprint for a tenancy
 
 > oci-api-keygen list [tenancy]
 
+**Delete**
+
+Delete all the artifacts for a tenancy and remove it from the config file.
+
+> oci-api-keygen delete [tenancy]
