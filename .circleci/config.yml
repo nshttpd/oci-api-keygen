@@ -1,0 +1,9 @@
+version: 2
+jobs:
+   build:
+     docker:
+       - image: circleci/golang:1.9.5-stretch
+     working_directory: /go/src/github.com/nshttpd/oci-api-keygen
+     steps:
+       - checkout
+       - run: make deploy
