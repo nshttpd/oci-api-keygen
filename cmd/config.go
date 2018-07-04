@@ -8,11 +8,13 @@ import (
 
 	"strings"
 
-	log "github.com/sirupsen/logrus"
 	"fmt"
+
+	log "github.com/sirupsen/logrus"
 )
 
 type Config struct {
+	Version int      `json:"version,omitempty"`
 	KeyPath string   `json:"keyPath"`
 	ApiKeys []ApiKey `json:"apiKeys"`
 }

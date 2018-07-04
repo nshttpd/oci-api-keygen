@@ -72,6 +72,12 @@ the command line.`,
 		log.SetLevel(l)
 
 		cfg = loadConfig()
+
+		// no config version means fix fingerprint issue
+		if cfg.Version == 0 {
+			cfg = fixFingerprint(cfg)
+		}
+
 	},
 	PersistentPostRun: func(cmd *cobra.Command, args []string) {
 		cfg.SaveConfig()

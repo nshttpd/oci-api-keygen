@@ -69,8 +69,8 @@ named as the tenancy supplied.`,
 		if key, err := rsa.GenerateKey(reader, bitsize); err != nil {
 			log.WithFields(log.Fields{"tenancy": t, "error": err}).Error("error generating key")
 		} else {
-			f := savePrivate(t+".pem", key)
-			savePublic(t+".pub.pem", key.Public())
+			savePrivate(t+".pem", key)
+			f := savePublic(t+".pub.pem", key.Public())
 			a := &ApiKey{Tenancy: t, Fingerprint: f}
 			cfg.ApiKeys = append(cfg.ApiKeys, *a)
 		}
@@ -78,7 +78,7 @@ named as the tenancy supplied.`,
 	},
 }
 
-func savePrivate(filename string, key *rsa.PrivateKey) string {
+func savePrivate(filename string, key *rsa.PrivateKey) {
 	f, err := os.Create(cfg.KeyPath + "/" + filename)
 	if err != nil {
 		log.WithFields(log.Fields{"filename": filename, "error": err}).Fatal("error creating private file")
@@ -94,9 +94,6 @@ func savePrivate(filename string, key *rsa.PrivateKey) string {
 		log.WithFields(log.Fields{"filename": filename, "error": err}).Fatal("error writing private file")
 	}
 
-	md5sum := md5.Sum(pk.Bytes)
-	return rfc4716hex(md5sum[:])
-
 }
 
 func rfc4716hex(data []byte) string {
@@ -110,7 +107,7 @@ func rfc4716hex(data []byte) string {
 	return fingerprint
 }
 
-func savePublic(filename string, key crypto.PublicKey) {
+func savePublic(filename string, key crypto.PublicKey) string {
 
 	//	asn1Bytes, err := asn1.Marshal(key)
 	asn1Bytes, err := x509.MarshalPKIXPublicKey(key)
@@ -134,6 +131,9 @@ func savePublic(filename string, key crypto.PublicKey) {
 	if err != nil {
 		log.WithFields(log.Fields{"filename": filename, "error": err}).Fatal("error writing public file")
 	}
+
+	md5sum := md5.Sum(pemkey.Bytes)
+	return rfc4716hex(md5sum[:])
 }
 
 func init() {
